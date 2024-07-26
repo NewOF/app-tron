@@ -67,7 +67,7 @@ static void dataWarningChoice(bool reject);
 static void customContractWarningChoice(bool reject);
 static void reviewChoice(bool confirm);
 static void rejectConfirmation(void);
-static void rejectChoice(void);
+void rejectChoice(void);
 
 static void dataWarningChoice(bool accept) {
     if (accept) {
@@ -163,7 +163,7 @@ static void rejectConfirmation(void) {
     nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_idle);
 }
 
-static void rejectChoice(void) {
+void rejectChoice(void) {
     nbgl_useCaseConfirm("Reject transaction?",
                         NULL,
                         "Yes, Reject",
