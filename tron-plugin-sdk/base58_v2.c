@@ -21,7 +21,7 @@
 
 #include "base58.h"
 
-uint8_t const BASE58_TABLE[] = {
+uint8_t const BASE58_TABLE_V2[] = {
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  //
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  //
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  //
@@ -35,7 +35,7 @@ uint8_t const BASE58_TABLE[] = {
     0x37, 0x38, 0x39, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF                           //
 };
 
-char const BASE58_ALPHABET[] = {
+char const BASE58_ALPHABET_V2[] = {
     '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',  //
     'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',  //
     'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'm',  //
@@ -57,11 +57,11 @@ int base58_decode_v2(const char *in, size_t in_len, uint8_t *out, size_t out_len
     memmove(tmp, in, in_len);
 
     for (uint8_t i = 0; i < in_len; i++) {
-        if (in[i] >= sizeof(BASE58_TABLE)) {
+        if (in[i] >= sizeof(BASE58_TABLE_V2)) {
             return -1;
         }
 
-        tmp[i] = BASE58_TABLE[(int) in[i]];
+        tmp[i] = BASE58_TABLE_V2[(int) in[i]];
 
         if (tmp[i] == 0xFF) {
             return -1;
@@ -146,11 +146,11 @@ int base58_encode_v2(const uint8_t *in, size_t in_len, char *out, size_t out_len
         return -1;
     }
 
-    memset(out, BASE58_ALPHABET[0], zero_count);
+    memset(out, BASE58_ALPHABET_V2[0], zero_count);
 
     i = zero_count;
     while (j < output_size) {
-        out[i++] = BASE58_ALPHABET[buffer[j++]];
+        out[i++] = BASE58_ALPHABET_V2[buffer[j++]];
     }
 
     return i;
