@@ -34,6 +34,9 @@
 #define INS_TIP712_STRUCT_DEF                  0x1A
 #define INS_TIP712_STRUCT_IMPL                 0x1C
 #define INS_TIP712_FILTERING                   0x1E
+#define INS_SET_EXTERNAL_PLUGIN                0x12
+#define INS_CLEAR_SIGN                         0xC4
+
 
 #define INS_PROVIDE_TRC20_TOKEN_INFORMATION 0xCA  // 0x0A in eth
 
@@ -70,3 +73,6 @@ int handleProvideTrc20TokenInformation(uint8_t p1,
                                        uint8_t p2,
                                        const uint8_t *workBuffer,
                                        uint8_t dataLength);
+
+int handleSetExternalPlugin(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength);
+int handleClearSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength);

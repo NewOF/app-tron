@@ -16,6 +16,7 @@
 #include "app_errors.h"
 #include "parse.h"
 #include "settings.h"
+#include "format.h"
 
 #define AMOUNT_JOIN_FLAG_TOKEN (1 << 0)
 #define AMOUNT_JOIN_FLAG_VALUE (1 << 1)

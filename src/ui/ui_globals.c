@@ -22,6 +22,8 @@
 #include "crypto_helpers.h"
 #include "ui_idle_menu.h"
 #include "app_errors.h"
+#include "tron_plugin_helper.h"
+#include "ui_plugin.h"
 
 #ifdef HAVE_NBGL
 #include "nbgl_use_case.h"

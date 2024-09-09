@@ -81,6 +81,12 @@ int apdu_dispatcher(const command_t *cmd) {
         case INS_SIGN_PERSONAL_MESSAGE:
             return handleSignPersonalMessage(cmd->p1, cmd->p2, cmd->data, cmd->lc);
 
+        case INS_SET_EXTERNAL_PLUGIN:
+            return handleSetExternalPlugin(cmd->p1, cmd->p2, cmd->data, cmd->lc);
+
+        case INS_CLEAR_SIGN:
+            return handleClearSign(cmd->p1, cmd->p2, cmd->data, cmd->lc);
+
         case INS_SIGN_TIP_712_MESSAGE:
             switch (cmd->p2) {
                 case P2_TIP712_LEGACY_IMPLEM:

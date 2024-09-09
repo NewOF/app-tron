@@ -8,6 +8,17 @@ from ragger.bip import pack_derivation_path
 from enum import IntEnum, auto
 
 
+class P1(IntEnum):
+    # GET_PUBLIC_KEY P1 values
+    CONFIRM = 0x01
+    NON_CONFIRM = 0x00
+    # SIGN P1 values
+    SIGN = 0x10
+    FIRST = 0x00
+    MORE = 0x80
+    LAST = 0x90
+    TRC10_NAME = 0xA0
+
 class TIP712FieldType(IntEnum):
     CUSTOM = 0,
     INT = auto()
@@ -335,3 +346,16 @@ class CommandBuilder:
         payload += sig
         return self._serialize(InsType.PROVIDE_TRC20_TOKEN_INFORMATION, 0x00,
                                0x00, payload)
+
+    def set_external_plugin(self, plugin_name: str, contract_address: bytes, selector: bytes, sig: bytes) -> bytes:
+        data = bytearray()
+        data.append(len(plugin_name))
+        data += plugin_name.encode()
+        data += contract_address
+        data += selector
+        data += sig
+
+        return self._serialize(InsType.EXTERNAL_PLUGIN_SETUP,
+                               P1.FIRST,
+                               0x00,
+                               data)

@@ -53,9 +53,10 @@ ENABLE_SWAP = 1
 ENABLE_NBGL_QRCODE = 1
 
 # Enabling DEBUG flag will enable PRINTF and disable optimizations
-DEBUG ?= 0
-
+DEBUG ?= 1
 APP_SOURCE_PATH  += src
+APP_SOURCE_FILES += $(filter-out ./tron-plugin-sdk/main.c, $(wildcard ./tron-plugin-sdk/*.c))
+INCLUDES_PATH += ./tron-plugin-sdk/
 
 ifneq ($(TARGET_NAME),TARGET_NANOS)
     DEFINES	+= HAVE_TIP712_FULL_SUPPORT
@@ -82,7 +83,11 @@ cleanall : clean
 NANOPB_DIR = nanopb
 
 CFLAGS += "-I$(NANOPB_DIR)" -Iproto
-DEFINES   += PB_NO_ERRMSG=1
+DEFINES += PB_NO_ERRMSG=1
+LOCAL_TEST ?= 1
+ifeq ($(LOCAL_TEST),1)
+	DEFINES += PLUGIN_TEST_LOCAL
+endif
 SOURCE_FILES += $(NANOPB_DIR)/pb_encode.c $(NANOPB_DIR)/pb_decode.c $(NANOPB_DIR)/pb_common.c
 APP_SOURCE_PATH += proto
 

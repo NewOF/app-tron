@@ -2,12 +2,12 @@
 import sys
 import base58
 
-from typing import Optional
+import logging
+import struct
 from contextlib import contextmanager
 from enum import IntEnum
 from pathlib import Path
-from typing import Tuple, Generator
-from struct import unpack
+from typing import Tuple, Generator, Union, Dict, cast, Optional
 from bip_utils import Bip39SeedGenerator, Bip32Slip10Secp256k1
 from bip_utils.addr import TrxAddrEncoder
 from eth_keys import keys
@@ -21,6 +21,9 @@ from ragger.firmware import Firmware
 from conftest import MNEMONIC
 
 from InputData import PKIPubKeyUsage
+from command_builder import P1
+from utils import packed_bip32_path_from_string, write_varint
+from speculos.client import ApduException
 '''
 Tron Protobuf
 '''
@@ -41,16 +44,16 @@ GET_ADDRESS_RESP_LEN = 101
 GET_VERSION_RESP_LEN = 4
 
 
-class P1(IntEnum):
-    # GET_PUBLIC_KEY P1 values
-    CONFIRM = 0x01
-    NON_CONFIRM = 0x00
-    # SIGN P1 values
-    SIGN = 0x10
-    FIRST = 0x00
-    MORE = 0x80
-    LAST = 0x90
-    TRC10_NAME = 0xA0
+# class P1(IntEnum):
+#     # GET_PUBLIC_KEY P1 values
+#     CONFIRM = 0x01
+#     NON_CONFIRM = 0x00
+#     # SIGN P1 values
+#     SIGN = 0x10
+#     FIRST = 0x00
+#     MORE = 0x80
+#     LAST = 0x90
+#     TRC10_NAME = 0xA0
 
 
 class P2(IntEnum):
@@ -68,7 +71,8 @@ class InsType(IntEnum):
     SIGN_PERSONAL_MESSAGE_FULL_DISPLAY = 0xC8
     GET_ECDH_SECRET = 0x0A
     SIGN_TIP_712_MESSAGE = 0x0C
-
+    EXTERNAL_PLUGIN_SETUP     = 0x12
+    CLEAR_SIGN =           0xC4
 
 class Errors(IntEnum):
     OK = 0x9000
@@ -303,6 +307,67 @@ class TronClient:
         return self._client.exchange(CLA, InsType.GET_APP_CONFIGURATION, 0x00,
                                      0x00)
 
+    def send_apdu(self, apdu: bytes) -> bytes:
+        try:
+            self._client.exchange(cla=apdu[0], ins=apdu[1],
+                                        p1=apdu[2], p2=apdu[3],
+                                        data=apdu[5:])
+        except ApduException as error:
+            raise DeviceException(error_code=error.sw, ins=InsType.INS_SIGN_TX)
+
+    def clear_sign(self,
+             path: str,
+             tx,
+             signatures=[],
+             snappath: Path = None,
+             text: str = "",
+             navigate: bool = True):
+        messages = []
+
+        # Split transaction in multiples APDU
+        data = pack_derivation_path(path)
+        while len(tx) > 0:
+            if len(tx) - len(data) > MAX_APDU_LEN:
+                newpos = MAX_APDU_LEN - len(data)
+            else:
+                newpos = len(tx)
+
+            if (len(data) + newpos) <= MAX_APDU_LEN:
+                # append to data
+                data += tx[:newpos]
+                tx = tx[newpos:]
+            else:
+                # add chunk
+                messages.append(data)
+                data = bytearray()
+                continue
+        # append last
+        messages.append(data)
+
+        # Send all the messages expect the last
+        for i, data in enumerate(messages[:-1]):
+            if i == 0:
+                p1 = P1.FIRST
+            else:
+                p1 = P1.MORE
+
+            self._client.exchange(CLA, InsType.CLEAR_SIGN, p1, 0x00, data)
+
+        # Send last message
+        if len(messages) == 1:
+            p1 = P1.SIGN
+        else:
+            p1 = P1.LAST
+
+        if navigate:
+            with self._client.exchange_async(CLA, InsType.CLEAR_SIGN, p1, 0x00,
+                                             messages[-1]):
+                self.navigate(snappath, text)
+            return self._client.last_async_response
+        else:
+            return self._client.exchange(CLA, InsType.CLEAR_SIGN, p1, 0x00,
+                                         messages[-1])
+
     def get_async_response(self) -> RAPDU:
         return self._client.last_async_response
 
@@ -361,7 +426,7 @@ class TronClient:
     def unpackGetVersionResponse(self,
                                  response: bytes) -> Tuple[int, int, int]:
         assert (len(response) == GET_VERSION_RESP_LEN)
-        major, minor, patch = unpack("BBB", response[1:])
+        major, minor, patch = struct.unpack("BBB", response[1:])
         return major, minor, patch
 
     def sign(self,
@@ -425,3 +490,26 @@ class TronClient:
         else:
             return self._client.exchange(CLA, InsType.SIGN, p1, 0x00,
                                          messages[-1])
+
+
+class DeviceException(Exception):  # pylint: disable=too-few-public-methods
+    exc: Dict[int, Any] = {
+    }
+
+    def __new__(cls,
+                error_code: int,
+                ins: Union[int, IntEnum, None] = None,
+                message: str = ""
+                ) -> Any:
+        error_message: str = (f"Error in {ins!r} command"
+                              if ins else "Error in command")
+
+        if error_code in DeviceException.exc:
+            return DeviceException.exc[error_code](hex(error_code),
+                                                   error_message,
+                                                   message)
+
+        return UnknownDeviceError(hex(error_code), error_message, message)
+
+class UnknownDeviceError(Exception):
+    pass

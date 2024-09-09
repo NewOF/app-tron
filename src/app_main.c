@@ -44,12 +44,16 @@ const internal_storage_t N_storage_real;
 
 txContent_t txContent;
 txContext_t txContext;
-
+dataContext_t dataContext;
 app_state_t appState;
 
 const chain_config_t *chainConfig;
 
 void reset_app_context() {
+#ifdef HAVE_SWAP
+    G_called_from_swap = false;
+    G_swap_response_ready = false;
+#endif  // HAVE_SWAP 
     appState = APP_STATE_IDLE;
     memset((uint8_t *) &txContext, 0, sizeof(txContext));
     memset((uint8_t *) &txContent, 0, sizeof(txContent));

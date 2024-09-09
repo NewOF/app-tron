@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include "core/Contract.pb.h"
 #include "common_utils.h"
+#include "asset_info.h"
+#include "tx_content.h"
 
 #ifndef PARSE_H
 #define PARSE_H
@@ -35,6 +37,9 @@
 #define SHARED_BUFFER_SIZE SHARED_CTX_FIELD_1_SIZE
 
 #define MAX_ASSETS 5
+
+#define SELECTOR_SIZE    4
+#define PLUGIN_ID_LENGTH 30
 
 typedef union {
     protocol_TransferContract transfer_contract;
@@ -69,44 +74,54 @@ typedef enum parserStatus_e {
     USTREAM_MISSING_SETTING_DATA_ALLOWED
 } parserStatus_e;
 
-typedef enum contractType_e {
-    ACCOUNTCREATECONTRACT = 0,
-    TRANSFERCONTRACT,
-    TRANSFERASSETCONTRACT,
-    VOTEASSETCONTRACT,
-    VOTEWITNESSCONTRACT,
-    WITNESSCREATECONTRACT,
-    ASSETISSUECONTRACT,
-    WITNESSUPDATECONTRACT = 8,
-    PARTICIPATEASSETISSUECONTRACT,
-    ACCOUNTUPDATECONTRACT,
-    FREEZEBALANCECONTRACT,
-    UNFREEZEBALANCECONTRACT,
-    WITHDRAWBALANCECONTRACT,
-    UNFREEZEASSETCONTRACT,
-    UPDATEASSETCONTRACT,
-    PROPOSALCREATECONTRACT,
-    PROPOSALAPPROVECONTRACT,
-    PROPOSALDELETECONTRACT,
-    SETACCOUNTIDCONTRACT,
-    CUSTOMCONTRACT,
-    CREATESMARTCONTRACT = 30,
-    TRIGGERSMARTCONTRACT,
-    EXCHANGECREATECONTRACT = 41,
-    EXCHANGEINJECTCONTRACT,
-    EXCHANGEWITHDRAWCONTRACT,
-    EXCHANGETRANSACTIONCONTRACT,
-    UPDATEENERGYLIMITCONTRACT,
-    ACCOUNTPERMISSIONUPDATECONTRACT,
-    FREEZEBALANCEV2CONTRACT = 54,
-    UNFREEZEBALANCEV2CONTRACT,
-    WITHDRAWEXPIREUNFREEZECONTRACT,
-    DELEGATERESOURCECONTRACT,
-    UNDELEGATERESOURCECONTRACT,
 
-    UNKNOWN_CONTRACT = 254,
-    INVALID_CONTRACT = 255
-} contractType_e;
+typedef enum parserDataLevel_e {
+    T_INIT, // T_CUSTOME_DATA
+    T_RAW,
+    T_RAW_CONTRACT,
+    T_RAW_CONTRACT_PARAMETER,
+    T_RAW_CONTRACT_PARAMETER_VALUE,
+    T_RAW_CONTRACT_PARAMETER_VALUE_L1,
+} parserDataLevel_e;
+
+// typedef enum contractType_e {
+//     ACCOUNTCREATECONTRACT = 0,
+//     TRANSFERCONTRACT,
+//     TRANSFERASSETCONTRACT,
+//     VOTEASSETCONTRACT,
+//     VOTEWITNESSCONTRACT,
+//     WITNESSCREATECONTRACT,
+//     ASSETISSUECONTRACT,
+//     WITNESSUPDATECONTRACT = 8,
+//     PARTICIPATEASSETISSUECONTRACT,
+//     ACCOUNTUPDATECONTRACT,
+//     FREEZEBALANCECONTRACT,
+//     UNFREEZEBALANCECONTRACT,
+//     WITHDRAWBALANCECONTRACT,
+//     UNFREEZEASSETCONTRACT,
+//     UPDATEASSETCONTRACT,
+//     PROPOSALCREATECONTRACT,
+//     PROPOSALAPPROVECONTRACT,
+//     PROPOSALDELETECONTRACT,
+//     SETACCOUNTIDCONTRACT,
+//     CUSTOMCONTRACT,
+//     CREATESMARTCONTRACT = 30,
+//     TRIGGERSMARTCONTRACT,
+//     EXCHANGECREATECONTRACT = 41,
+//     EXCHANGEINJECTCONTRACT,
+//     EXCHANGEWITHDRAWCONTRACT,
+//     EXCHANGETRANSACTIONCONTRACT,
+//     UPDATEENERGYLIMITCONTRACT,
+//     ACCOUNTPERMISSIONUPDATECONTRACT,
+//     FREEZEBALANCEV2CONTRACT = 54,
+//     UNFREEZEBALANCEV2CONTRACT,
+//     WITHDRAWEXPIREUNFREEZECONTRACT,
+//     DELEGATERESOURCECONTRACT,
+//     UNDELEGATERESOURCECONTRACT,
+
+//     UNKNOWN_CONTRACT = 254,
+//     INVALID_CONTRACT = 255
+// } contractType_e;
 
 enum { OFFSET_CLA = 0, OFFSET_INS, OFFSET_P1, OFFSET_P2, OFFSET_LC, OFFSET_CDATA };
 typedef enum {
@@ -146,31 +161,31 @@ typedef struct {
 
 #define COLLECTION_NAME_MAX_LEN 70
 
-typedef struct nftInfo_t {
-    uint8_t contractAddress[ADDRESS_SIZE_712];  // must be first item
-    char collectionName[COLLECTION_NAME_MAX_LEN + 1];
-} nftInfo_t;
+// typedef struct nftInfo_t {
+//     uint8_t contractAddress[ADDRESS_SIZE_712];  // must be first item
+//     char collectionName[COLLECTION_NAME_MAX_LEN + 1];
+// } nftInfo_t;
 
-// TOKENS
+// // TOKENS
 
-#define MAX_TICKER_LEN 11  // 10 characters + '\0'
+// #define MAX_TICKER_LEN 11  // 10 characters + '\0'
 
-typedef struct tokenDefinition_t {
-    uint8_t address[ADDRESS_SIZE];  // must be first item
-    char ticker[MAX_TICKER_LEN];
-    uint8_t decimals;
-} tokenDefinition_t;
+// typedef struct tokenDefinition_t {
+//     uint8_t address[ADDRESS_SIZE];  // must be first item
+//     char ticker[MAX_TICKER_LEN];
+//     uint8_t decimals;
+// } tokenDefinition_t;
 
-// UNION
+// // UNION
 
-typedef union extraInfo_t {
-    tokenDefinition_t token;
-// Would have used HAVE_NFT_SUPPORT but it is only declared for the Tron app
-// and not plugins
-#ifndef TARGET_NANOS
-    nftInfo_t nft;
-#endif
-} extraInfo_t;
+// typedef union extraInfo_t {
+//     tokenDefinition_t token;
+// // Would have used HAVE_NFT_SUPPORT but it is only declared for the Tron app
+// // and not plugins
+// #ifndef TARGET_NANOS
+//     nftInfo_t nft;
+// #endif
+// } extraInfo_t;
 
 typedef struct transactionContext_t {
     bip32_path_t bip32_path;
@@ -182,24 +197,53 @@ typedef struct transactionContext_t {
     uint8_t currentAssetIndex;
 } transactionContext_t;
 
-typedef struct txContent_t {
-    uint64_t amount[2];
-    uint64_t exchangeID;
-    uint8_t account[ADDRESS_SIZE];
-    uint8_t destination[ADDRESS_SIZE];
-    uint8_t contractAddress[ADDRESS_SIZE];
-    uint8_t TRC20Amount[32];
-    uint8_t decimals[2];
-    char tokenNames[2][MAX_TOKEN_LENGTH];
-    uint8_t tokenNamesLength[2];
-    uint8_t resource;
-    uint8_t TRC20Method;
-    uint32_t customSelector;
-    contractType_e contractType;
-    uint64_t dataBytes;
-    uint8_t permission_id;
-    uint32_t customData;
-} txContent_t;
+// typedef struct txContent_t {
+//     uint64_t amount[2];
+//     uint64_t exchangeID;
+//     uint8_t account[ADDRESS_SIZE];
+//     uint8_t destination[ADDRESS_SIZE];
+//     uint8_t contractAddress[ADDRESS_SIZE];
+//     uint8_t TRC20Amount[32];
+//     uint8_t decimals[2];
+//     char tokenNames[2][MAX_TOKEN_LENGTH];
+//     uint8_t tokenNamesLength[2];
+//     uint8_t resource;
+//     uint8_t TRC20Method;
+//     uint32_t customSelector;
+//     contractType_e contractType;
+//     uint64_t dataBytes;
+//     uint8_t permission_id;
+//     uint32_t customData;
+// } txContent_t;
+
+typedef struct tokenContext_t {
+    char pluginName[PLUGIN_ID_LENGTH];
+
+    uint8_t data[HASH_SIZE];
+    uint16_t fieldIndex;
+    uint8_t fieldOffset;
+
+    uint8_t pluginUiMaxItems;
+    uint8_t pluginUiCurrentItem;
+    uint8_t pluginUiState;
+
+    union {
+        struct {
+            uint8_t contractAddress[ADDRESS_SIZE];
+            uint8_t methodSelector[SELECTOR_SIZE];
+        };
+        // This needs to be strictly 4 bytes aligned since pointers to it will be casted as
+        // plugin context struct pointers (structs that contain up to 4 bytes wide elements)
+        uint8_t pluginContext[5 * HASH_SIZE] __attribute__((aligned(4)));
+    };
+
+    uint8_t pluginStatus;
+
+} tokenContext_t;
+
+typedef union {
+    tokenContext_t tokenContext;
+} dataContext_t;
 
 typedef struct messageSigningContext712_t {
     uint8_t pathLength;
@@ -262,9 +306,12 @@ bool adjustDecimals(const char *src,
 void initTx(txContext_t *context, txContent_t *content);
 
 parserStatus_e processTx(uint8_t *buffer, uint32_t length, txContent_t *content);
+parserStatus_e processCSTx(uint8_t *buffer, uint32_t length, txContent_t *content);
+uint32_t processCSTxV2(uint8_t *buffer, uint32_t length, txContent_t *content, uint8_t state);
 
 extern txContent_t txContent;
 extern txContext_t txContext;
+extern dataContext_t dataContext;
 extern uint8_t appState;
 extern states191_t states191;
 extern uint8_t processed_size_191;
