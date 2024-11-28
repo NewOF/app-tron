@@ -164,6 +164,7 @@ static void rejectConfirmation(void) {
 }
 
 void rejectChoice(void) {
+    PRINTF("Runing at here %s: %d\n", __FILE__, __LINE__);
     nbgl_useCaseConfirm("Reject transaction?",
                         NULL,
                         "Yes, Reject",
@@ -436,6 +437,7 @@ static void display_address_callback(bool confirm) {
 }
 
 void ux_flow_display(ui_approval_state_t state, bool data_warning) {
+    PRINTF("Runing at here %s: %d: %d\n", __FILE__, __LINE__, state);
     if (state == APPROVAL_VERIFY_ADDRESS) {
         nbgl_useCaseAddressReview(toAddress,
                                   NULL,
