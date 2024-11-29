@@ -54,7 +54,6 @@ ENABLE_NBGL_QRCODE = 1
 
 # Enabling DEBUG flag will enable PRINTF and disable optimizations
 DEBUG ?= 0
-DEBUG = 1
 
 APP_SOURCE_PATH  += src
 
@@ -63,7 +62,6 @@ ifneq ($(TARGET_NAME),TARGET_NANOS)
 	DEFINES += HAVE_DYN_MEM_ALLOC
 endif
 
-TRUSTED_NAME_TEST_KEY = 1
 # ENS
 ifneq ($(TARGET_NAME),TARGET_NANOS)
     DEFINES += HAVE_TRUSTED_NAME
@@ -73,7 +71,6 @@ ifneq ($(TARGET_NAME),TARGET_NANOS)
     endif
 endif
 
-CAL_TEST_KEY = 1
 ifneq ($(CAL_TEST_KEY),0)
     # Key used in our test framework
     DEFINES += HAVE_CAL_TEST_KEY
